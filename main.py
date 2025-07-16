@@ -16,13 +16,14 @@ main_menu = True
 level = 3
 max_levels = 7
 score = 0
-
+key = 0
 # Setup
 clock = pygame.time.Clock()
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption("Mistey")
 test_font = pygame.font.Font('text/Pixeltype.ttf', 100)
 text_surface = test_font.render('Welcome', False, 'RED').convert()
+key_count=test_font.render(f"Key count: {key}", False, 'RED').convert()
 
 # Load images
 restart_img = pygame.image.load('img/restart_btn.png').convert_alpha()
@@ -35,6 +36,13 @@ class Tree(pygame.sprite.Sprite):
         super().__init__(group)
         self.image = pygame.image.load('img/tree.png').convert_alpha()
         self.rect = self.image.get_rect(topleft=pos)
+
+class Key(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.image.load('img/GRASS/key.png').convert_alpha()
+        self.image = pygame.transform.scale(self.image, (tile_size, tile_size))
+        self.rect = self.image.get_rect(topleft=(x, y))
 
 # Button Class
 class Button():
@@ -73,9 +81,11 @@ class World():
     def __init__(self, data):
         self.tile_list = []
         self.wall_rects=[]
+        self.key_group = pygame.sprite.Group()
 
-        dirt_img = pygame.image.load('img/GRASS/grass_1.png')
+        dirt_img = pygame.image.load('img/GRASS/random.png')
         grass_img = pygame.image.load('img/GRASS/road_1.png')
+        key_img = pygame.image.load('img/GRASS/key.png')
 
         for row_index, row in enumerate(data):
             for col_index, tile in enumerate(row):
@@ -90,10 +100,22 @@ class World():
                     img = pygame.transform.scale(grass_img, (tile_size, tile_size))
                     rect = pygame.Rect(x, y, tile_size, tile_size)
                     self.tile_list.append((img, rect))
+                elif tile == 3:
+                    # Draw ground tile underneath the key
+                    img = pygame.transform.scale(grass_img, (tile_size, tile_size))
+                    rect = pygame.Rect(x, y, tile_size, tile_size)
+                    self.tile_list.append((img, rect))
+
+                    # Then place the key on top
+                    key = Key(x, y)
+                    self.key_group.add(key)
 
     def draw(self, offset):
         for image, rect in self.tile_list:
             screen.blit(image, rect.topleft - offset)
+
+        for key in self.key_group:
+            screen.blit(key.image, key.rect.topleft - offset)
 
 # Camera Group
 class CameraGroup(pygame.sprite.Group):
@@ -123,7 +145,7 @@ class CameraGroup(pygame.sprite.Group):
 world_data = [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     [1,2,2,1,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,1,2,2,2,2,1,2,2,2,1,2,2,2,2,1],
-    [1,2,2,1,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,1,2,2,2,2,1,2,2,2,1,2,2,2,2,1],
+    [1,2,3,1,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,1,2,2,2,2,1,2,2,2,1,2,2,3,2,1],
     [1,2,2,1,2,2,1,2,2,2,1,1,1,1,1,2,2,2,2,1,2,2,1,1,1,1,1,1,2,2,2,2,2,1,2,1,2,2,1,2,1,2,2,1,2,2,2,1,2,1,2,2,1],
     [1,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,1,2,2,2,2,1,2,2,2,2,2,1,2,1,2,2,1,2,1,2,2,1,2,2,2,1,2,1,2,2,1],
     [1,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,1,2,2,2,2,1,2,2,2,2,2,1,2,1,2,2,1,2,1,2,2,1,2,2,2,2,2,1,1,1,1],
@@ -168,7 +190,7 @@ world_data = [
     [1,1,1,1,1,1,1,1,1,1,2,2,2,1,1,1,1,2,2,1,1,1,1,1,1,1,2,2,2,2,2,2,1,2,2,2,1,2,2,1,2,1,2,2,1,2,2,2,2,2,2,2,1],
     [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,1,2,2,2,2,2,2,2,1,2,2,2,1,2,2,1,2,1,2,2,1,2,2,2,2,2,2,2,1],
     [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1,2,2,1,1,1,1,1,1,2,2,1,2,2,2,1,2,2,1,2,1,2,2,1,2,2,2,2,2,2,2,1],
-    [1,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,1,2,2,1,2,2,2,2,1,2,2,2,2,2,2,2,1],
+    [1,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,1,2,2,1,2,2,2,2,1,2,2,2,2,3,2,2,1],
     [1,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,1,2,2,1,2,2,2,2,1,2,2,2,2,2,2,2,1],
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ]  
@@ -178,10 +200,10 @@ world = World(world_data)
 restart_button = Button(screen_width // 2 - 50, screen_height // 2 + 100, restart_img)
 start_button = Button(screen_width // 2 - 350, screen_height // 2, start_img)
 exit_button = Button(screen_width // 2 + 150, screen_height // 2, exit_img)
-
 # Main Game Loop
 def main():
     global main_menu
+    global key
     frame_timer = 0
 
     camera_group = CameraGroup()
@@ -203,16 +225,24 @@ def main():
         else:
             keys = pygame.key.get_pressed()
             character_state.character_movement(keys, world.wall_rects)
+            collected_keys = pygame.sprite.spritecollide(character_state, world.key_group, True)
+            if collected_keys:
+                key += len(collected_keys)
+                print("key collected")
             frame_timer = (frame_timer + 1) % fps
 
             camera_group.update(frame_timer)
             screen.fill((0, 0, 0))
             camera_group.custom_draw(character_state, world)
 
+            for key_sprite in world.key_group:
+                screen.blit(key_sprite.image, key_sprite.rect.topleft - camera_group.offset)
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
-
+        key_count_text = test_font.render(f"Key count: {key}", False, 'RED')
+        screen.blit(key_count_text, (10, 10))  # Top-left corner
         pygame.display.update()
 
     pygame.quit()
