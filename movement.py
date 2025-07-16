@@ -7,16 +7,22 @@ class Character_state(pygame.sprite.Sprite):
         self.direction = direction
         self.frame_type = idle[direction]
 
-        # Use image and rect for sprite compatibility
-        self.image = self.frame_type.animate(0)  # Assume frame_type has .animate(timer)
-
-        # Offset the rect's center downward to appear in front of grass tiles
-        offset_y = 20  # Adjust this value if needed
-        self.rect = self.image.get_rect(center=(x, y + offset_y))
+        self.image = self.frame_type.animate(0)
+        self.rect = self.image.get_rect(center=(x, y + 20))  # visual sprite rect
 
         self.speed = 5
 
-    def character_movement(self, keys):
+        # Feet rect: small collision box at bottom center of the sprite
+        feet_width = self.rect.width // 2
+        feet_height = 10  # Height of the feet box
+        self.feet_rect = pygame.Rect(0, 0, feet_width, feet_height)
+        self.update_feet_position()
+
+    def update_feet_position(self):
+        """Place feet_rect at the bottom center of the sprite."""
+        self.feet_rect.midbottom = self.rect.midbottom
+
+    def character_movement(self, keys, wall_rects):
         dx = dy = 0
 
         if keys[pygame.K_d] or keys[pygame.K_RIGHT]:
@@ -38,10 +44,27 @@ class Character_state(pygame.sprite.Sprite):
         else:
             self.frame_type = idle[self.direction]
 
-        # Update position
-        self.rect.x += dx
-        self.rect.y += dy
+        # --- Move feet rect first ---
+        self.feet_rect.x += dx
+        for wall in wall_rects:
+            if self.feet_rect.colliderect(wall):
+                if dx > 0:
+                    self.feet_rect.right = wall.left
+                elif dx < 0:
+                    self.feet_rect.left = wall.right
+
+        self.feet_rect.y += dy
+        for wall in wall_rects:
+            if self.feet_rect.colliderect(wall):
+                if dy > 0:
+                    self.feet_rect.bottom = wall.top
+                elif dy < 0:
+                    self.feet_rect.top = wall.bottom
+
+        # --- Now move the sprite to match the feet position ---
+        self.rect.midbottom = self.feet_rect.midbottom
 
     def update(self, frame_timer):
-        # Update current frame from animation
         self.image = self.frame_type.animate(frame_timer)
+        self.update_feet_position()
+
