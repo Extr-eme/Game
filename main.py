@@ -44,6 +44,13 @@ class Key(pygame.sprite.Sprite):
         self.image = pygame.transform.scale(self.image, (tile_size, tile_size))
         self.rect = self.image.get_rect(topleft=(x, y))
 
+class Chest(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.image.load('img/GRASS/CHEST.png').convert_alpha()
+        self.image = pygame.transform.scale(self.image, (tile_size, tile_size))
+        self.rect = self.image.get_rect(topleft=(x, y))
+
 # Button Class
 class Button():
     def __init__(self, x, y, image):
@@ -82,10 +89,11 @@ class World():
         self.tile_list = []
         self.wall_rects=[]
         self.key_group = pygame.sprite.Group()
+        self.tree_group = pygame.sprite.Group()
+        self.chest_group = pygame.sprite.Group()
 
         dirt_img = pygame.image.load('img/GRASS/random.png')
         grass_img = pygame.image.load('img/GRASS/road_1.png')
-        key_img = pygame.image.load('img/GRASS/key.png')
 
         for row_index, row in enumerate(data):
             for col_index, tile in enumerate(row):
@@ -109,6 +117,15 @@ class World():
                     # Then place the key on top
                     key = Key(x, y)
                     self.key_group.add(key)
+                elif tile == 4:
+                    # Draw ground tile underneath the key
+                    img = pygame.transform.scale(grass_img, (tile_size, tile_size))
+                    rect = pygame.Rect(x, y, tile_size, tile_size)
+                    self.tile_list.append((img, rect))
+
+                    # Then place the key on top
+                    chest = Chest(x, y)
+                    self.chest_group.add(chest)
 
     def draw(self, offset):
         for image, rect in self.tile_list:
@@ -116,6 +133,9 @@ class World():
 
         for key in self.key_group:
             screen.blit(key.image, key.rect.topleft - offset)
+        
+        for chest in self.chest_group:
+            screen.blit(chest.image, chest.rect.topleft - offset)
 
 # Camera Group
 class CameraGroup(pygame.sprite.Group):
@@ -170,7 +190,7 @@ world_data = [
     [1,2,1,1,2,1,1,2,1,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,1,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
     [1,2,2,1,1,1,2,2,1,2,2,2,2,1,2,2,2,1,2,2,2,2,2,2,2,2,2,1,1,1,1,1,2,2,1,2,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,1],
     [1,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,1,1,1,1,1,1,1,1,1,2,2,2,1],
-    [1,2,2,2,1,1,1,1,1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,1],
+    [1,2,2,2,1,1,1,1,1,2,2,2,2,2,2,2,2,1,2,2,2,2,4,2,2,2,2,1,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,1],
     [1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,1,2,2,1,1,2,2,1,2,2,2,2,2,1,1,1,1,1,2,2,2,1,2,2,2,1],
     [1,2,2,2,2,2,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,1,2,2,2,1,2,2,1,1,1,1,1,2,2,2,2,2,1,1,1,2,1,1,2,2,1],
     [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,1,2,2,2,1,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,1,2,2,1],
@@ -207,7 +227,7 @@ def main():
     frame_timer = 0
 
     camera_group = CameraGroup()
-    character_state = Character_state(screen_width / 2, screen_height / 2, 0)
+    character_state = Character_state(tile_size * 2, tile_size * (len(world_data) - 3), 0)
 
     # Only character and interactive sprites go in camera group
     camera_group.add(character_state)
@@ -224,11 +244,16 @@ def main():
             screen.blit(text_surface, (600, 200))
         else:
             keys = pygame.key.get_pressed()
+            
             character_state.character_movement(keys, world.wall_rects)
             collected_keys = pygame.sprite.spritecollide(character_state, world.key_group, True)
             if collected_keys:
                 key += len(collected_keys)
                 print("key collected")
+            if key >= 3:
+                collected_chests = pygame.sprite.spritecollide(character_state, world.chest_group, True)
+                if collected_chests:
+                    print("Chest collected!")
             frame_timer = (frame_timer + 1) % fps
 
             camera_group.update(frame_timer)

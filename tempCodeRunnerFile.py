@@ -1,0 +1,1 @@
+key_img = pygame.image.load('img/GRASS/key.png')
